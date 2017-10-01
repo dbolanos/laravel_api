@@ -1,0 +1,203 @@
+Como se hizo este proyecto!
+
+Bueno lo primero fue intslar php y apache y maariadb luego instalar composer para descargar laravel, en este caso voy a usar laravel 5.5, podemos utilizar el comando php artisan --version para saber la version de laravel.
+
+Lo primero que hay que hacer cuando se descargar un laravel es ir nos al proyecto abrir una consola y digitar:
+	composer install
+
+el siguiente comando seria:
+	Nota: Este comando se puede correr siempre y cuando y el archivo de .env exista
+	php artisan key:generate
+
+y si tenemos seeders seria correr.. los sederse
+	php artisan migrate --seed
+
+ahora algunas veces tendremos que aplicar el sigueinte comando para que composer vuelva a refrescar todo
+
+	composer dumpautoload
+
+Para crear un model utilizamos el siguiente comando el cual nose creara una plantilla por default
+
+	php artisan make:model Fabricante
+
+
+Migrations
+
+    Las Migrations (desplazamientos o migraciones) son un tipo de control de versiones pero para bases de datos.
+    Nos permiten modificar el esquema de la base de datos y estar actualizados correctamente del estado del mismo. Es decir con las migrations podremos crear el esquema de tablas, cubrir datos en la tablas, hacer rollback para volver a estados iniciales, etc...
+    Las migrations en Laravel se encuentran en la carpeta database/migrations.
+    Para cada tabla de la base de datos tendremos 1 archivo de migrations.
+    A la hora de ejecutar las migrations Laravel ejecuta los archivos de migration que están en la carpeta database/migrations.
+
+Pasos a seguir para crear las plantillas de Migrations para cada tabla
+
+    Primero tenemos que crear una base de datos, usuario y contraseña con PHPMyAdmin, ya que PHP Artisan no puede hacer esa tarea por nosotros.
+    Configuraremos los parámetros de conexión a nuestra base de datos en el fichero .env que se encuentra en la ruta raíz de Laravel.
+
+Por ejemplo podemos crear la siguiente base de datos, crear un usuario y la contraseña
+
+y luego lo configuremos en el archivo .env
+
+	DB_CONNECTION=mysql
+	DB_HOST=127.0.0.1
+	DB_PORT=3306
+	DB_DATABASE=laravel_api
+	DB_USERNAME=root
+	DB_PASSWORD=123456
+
+Una vez configurada la conexión a la base de datos procederemos a crear una plantilla de Migration para cada tabla.
+ATENCIÓN: si hemos creado las plantillas de Modelo sin usar PHP Artisan, entonces borrarremos todas las migrations que aparecen por defecto en la carpeta database/migrations. En otro caso borraremos solamente las migrations que no tengan que ver con nuestras tablas.
+Si necesitamos crear las plantillas de Migrations para nuestras tablas por que hemos borrado todos los ficheros podemos ejecutar el siguiente 
+comando para cada una de las tablas:
+
+	# Crearemos primero la plantilla de migration para Fabricantes ya que Aviones tiene una relación que depende de Fabricantes.
+	php artisan make:migration fabricantes_migration --create=fabricantes
+
+	# A continuación la plantilla de migration para aviones.
+	php artisan make:migration aviones_migration --create=aviones
+
+Ejemplo de la migracion:
+
+	<?php
+
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class AvionesMigration extends Migration {
+
+	/**
+	 * Run the migrations.
+	 *
+	 * @return void
+	 */
+	public function up()
+	{
+		Schema::create('aviones', function(Blueprint $table)
+		{
+			$table->increments('serie');
+			$table->string('modelo');
+			$table->float('longitud');
+			$table->integer('capacidad');
+			$table->integer('velocidad');
+			$table->integer('alcance');
+			
+			// Añadimos la clave foránea con Fabricante. fabricante_id
+			// Acordarse de añadir al array protected $fillable del fichero de modelo "Avion.php" la nueva columna:
+			// protected $fillable = array('modelo','longitud','capacidad','velocidad','alcance','fabricante_id');
+			$table->integer('fabricante_id')->unsigned();
+
+			// Indicamos cual es la clave foránea de esta tabla:
+			$table->foreign('fabricante_id')->references('id')->on('fabricantes');
+
+			// Para que también cree automáticamente los campos timestamps (created_at, updated_at)
+			$table->timestamps();
+		});
+	}
+
+	/**
+	 * Reverse the migrations.
+	 *
+	 * @return void
+	 */
+	public function down()
+	{
+		Schema::drop('aviones');
+	}
+
+}
+
+
+
+ ATENCIÓN:: En XAMPP para que funcione correctamente PDO MySQL que es el sistema de acceso a base de datos que viene por defecto en XAMPP, hay que habilitar dicha extensión editando el fichero C:\xampp\php\php.ini y sacando el ; inicial en la línea extension=php_pdo_mysql.dll. Si no lo hacemos al intentar ejecutar las migraciones obtendremos un error del estilo: [PDOException] could not find driver en Laravel. Acordarse de Reiniciar Apache en XAMPP una vez hecho el cambio.
+PHP Artisan lleva el control de las Migrations a través de una tabla llamada migrations que tendríamos que tener en el MySQL. Para instalar esa tabla de forma automática antes de poder ejecutar las Migrations tenemos que ejecutar el siguiente comando (1 vez solamente por proyecto):
+
+# Esta línea ya no es necesaria por que lo hace automáticamente en las últimas versiones de Laravel.
+php artisan migrate:install
+# Migration table created successfully
+
+
+
+Ejecutamos a continuación todas las migrations para que cree las tablas en el MySQL:
+
+php artisan migrate
+
+#Migrated: 2015_04_09_105558_fabricantes_migration
+#Migrated: 2015_04_09_105827_aviones_migration
+
+# Si vamos a PHPMyAdmin veremos que ha aparecido una nueva tabla llamada migrations.
+
+# Si queremos volver a poner la base de datos en su estado inicial podemos hacerlo con:
+php artisan migrate:refresh
+
+
+Si cuando corremos el comando de php artisan migrate nos da el siguiente error:
+
+[Illuminate\Database\QueryException]
+SQLSTATE[42000]: Syntax error or access violation: 1071 Specified key was too long; max key length is 767 bytes (SQL: alter table `users` add unique `users_email_unique`(`email`))
+ 
+[PDOException]
+SQLSTATE[42000]: Syntax error or access violation: 1071 Specified key was too long; max key length is 767 bytes
+
+entonces podemos hacer lo siguiente:
+
+1) Cambiar nuestra configuracion en el archivo de databases.php para que funciones con utf8
+2) Cambiar la configuracion de nuestra base de datos para que trabaje con utf8mb4
+
+En este caso... usare la opcion 1 
+
+In case you don’t want to use the utf8mb4 (that is now setup by default in Laravel 5.4) – instead you want to stick with utf8 that was in use in Laravel 5.3 and all versions before, simply edit /config/database.php  and find these two lines in mysql driver:
+
+	'charset' => 'utf8mb4',
+	'collation' => 'utf8mb4_unicode_ci',
+
+and replace them with with
+
+	'charset' => 'utf8',
+	'collation' => 'utf8_unicode_ci',
+
+That will stop using the utf8mb4 and will change back to utf8. The good thing about this is that you’ll be able to fit 25% more characters into the same columns in database compared with utf8mb4 and that you’ll be able to use existing databases and projects without the need of converting them if you don’t want to. And the downside is that some characters will not be able to be saved to database like this mac command character ⌘ or some emojis. Utf8 can only store Plane Unicode while utf8mb4 can store any unicode character.  Utf8mb4 is also 100% backwards compatible with utf8.
+
+Esta informacion la tome de http://geektnt.com/2017/01
+Ahi tambien explica otras maneras de resolver el problema.
+
+
+
+Población automática de las tablas de la base de datos con Laravel y PHP Artisan
+
+    Con PHP Artisan podremos llenar de forma masiva las tablas con datos de ejemplo, utilizando lo que se conoce como Seeders.
+    Los Seeders son una serie de instruciones en las cuales indicamos cómo queremos que se llenen las tablas con datos.
+    Los Seeders se encuentran en la carpeta database/seeds
+
+Pasos a seguir para configurar los seeders:
+
+    Abrir el fichero database/seeds/DatabaseSeeder.php
+    En ese fichero haremos las llamadas a los seeders que queremos que ejecute:
+
+Código de ejemplo del fichero database/seeds/DatabaseSeeder.php: 
+
+<?php
+
+use Illuminate\Database\Seeder;
+use Illuminate\Database\Eloquent\Model;
+
+class DatabaseSeeder extends Seeder {
+
+	/**
+	 * Run the database seeds.
+	 *
+	 * @return void
+	 */
+	public function run()
+	{
+		Model::unguard();
+
+		$this->call('FabricanteSeeder');
+	   	$this->call('AvionSeeder');
+		// $this->call('UserTableSeeder');
+	}
+
+
+Creamos un fichero de Seeder para cada tabla FabricanteSeeder.php y AvionSeeder.php
+
+php artisan make:seeder FabricanteSeeder
+
