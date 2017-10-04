@@ -288,3 +288,311 @@ composer update fzaninotto/faker
 # Se encarga de descargar el código de la clase y actualizar el fichero composer.json de nuestra aplicación.
 
 
+
+Ahora vamos a crear los controladores para cada uno, con el siguiente comando
+
+php artisan make:controller FabricanteController --resource
+# Controller created successfully.
+
+php artisan make:controller FabricanteAvionController --resource
+# Controller created successfully.
+
+php artisan make:controller AvionController --resource
+# Controller created successfully.
+
+# Aparecerán en la carpeta '''app/Http/Controllers''' 3 ficheros nuevos: '''FabricanteController.php''' y '''FabricanteAvionController.php''' y '''AvionController.php''' que editaremos a continuación.
+
+------------------------------   ** Laravel Español **   --------------------------------
+
+Antes de hacer lo de las rutas, vamos hacer un parentesis para poder pasar nuestro laravel al idioma del español, ya que estamos trabajando en ese idioma, lo que debemos hacer es lo siguiente:
+
+Laravel Español
+
+Paquete de traducciones en español para Laravel 5. Este paquete te agrega a tu proyecto los ficheros de traducciones en español que Laravel 5 trae por defecto.
+
+Archivos por defecto incluidos en Laravel:
+
+auth.php
+passwords.php
+pagination.php
+validation.php
+Instalación
+Colaborar
+
+Instalación
+
+Puedes instalar este paquete mediante composer:
+
+composer require laraveles/spanish
+Posteriormente debes agregar el proveedor de servicios en tu fichero config/app.php:
+
+'providers' => [
+    // ...
+    Laraveles\Spanish\SpanishServiceProvider::class,
+];
+Ahora símplemente necesitamos necesitamos actualizar las traducciones que lo haremos con el siguiente comando:
+
+php artisan vendor:publish --tag=lang
+O también podramos usar:
+
+php artisan laraveles:install-lang
+Déspues de todos estos pasos, ya tenemos disponible nuestras traducciones en español, y solo necesitamos configurar Laravel para que use el idioma deseado.
+
+Esto lo podemos hacer modificando el parámetro locale de la configuración de Laravel en config/app.php:
+
+// Ej: español
+'locale'          => 'es',
+// Ej: inglés
+'locale'          => 'en',
+Se puede ser mas concreto e indicar las variaciones de un lenguaje:
+
+// Inglés americano
+'locale' => 'en_US'
+// Portugués de Portugal
+'locale' => 'pt_PT'
+Pero en este caso nos valdrá con un español internacional para todos.
+
+También se puede cambiar el idioma en tiempo de ejecución utilizando el método setLocale de App. Este cambio no es permanente, en la siguiente ejecución se utilizará el valor de configuración por defecto:
+
+App::setLocale('es');
+
+------------------------------   ** FIN Laravel Español **   --------------------------------
+
+Ahora vamos a crear las rutas, para eso fui al archivo routes/api.php
+
+y agregamos esto:
+
+
+Rutas Resource a partir de los Controladores
+
+Otra forma de crear rutas es a partir de un Controlador es lo que se denomina una ruta Resource.
+
+    Editaremos el fichero app/Http/routes.php eliminando su contenido actual y creando las llamadas a los recursos de controladores RESTful creados anteriormente:
+
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Application Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register all of the routes for an application.
+| It's a breeze. Simply tell Laravel the URIs it should respond to
+| and give it the controller to call when that URI is requested.
+|
+*/
+
+// resource recibe nos parámetros(URI del recurso, Controlador que gestionará las peticiones)
+Route::resource('fabricantes','FabricanteController');
+
+// Como la clase principal es fabricantes y un avión no se puede crear si no le indicamos el fabricante, 
+// entonces necesitaremos crear lo que se conoce como  "Recurso Anidado" de fabricantes con aviones.
+// Definición del recurso anidado:
+Route::resource('fabricantes.aviones','FabricanteAvionController');
+
+
+La ruta aviones/create (mostraría un formulario para dar de alta un avión)
+La ruta aviones/post (nos permitiría grabar ese avión)
+Viendo esas dos rutas nos damos cuenta de que tenemos un error conceptual. No tenemos forma de crear un avión y pasarle al modelo el id del fabricante para que pueda establecer correctamente la clave foránea.
+Un avión por si sólo no puede existir si no tenemos un fabricante que lo ha fabricado, por lo tanto la colección principal es fabricantes y necesitaremos definir lo que se conoce como recursos anidados para poder crear un avión de un fabricante.
+
+Las rutas quedarían entonces así:
+
+
+// resource recibe nos parámetros(URI del recurso, Controlador que gestionará las peticiones)
+Route::resource('fabricantes','FabricanteController');
+
+// Como la clase principal es fabricantes y un avión no se puede crear si no le indicamos el fabricante, 
+// entonces necesitaremos crear lo que se conoce como  "Recurso Anidado" de fabricantes con aviones.
+// Definición del recurso anidado:
+Route::resource('fabricantes.aviones','FabricanteAvionController');
+
+// Si queremos dar  la funcionalidad de ver todos los aviones tendremos que crear una ruta específica.
+// Pero de aviones solamente necesitamos solamente los métodos index y show.
+// Lo correcto sería hacerlo así:
+Route::resource('aviones','AvionController',[ 'only'=>['index','show'] ]);
+
+
+Un último detalle consistiría en eliminar el método show de fabricantes.aviones.show ya que ese método se usa para mostrar un avión y ya tenemos un aviones.show que hace esa tarea:
+
+// resource recibe nos parámetros(URI del recurso, Controlador que gestionará las peticiones)
+Route::resource('fabricantes','FabricanteController',['except'=>['edit','create'] ]);	// Todos los métodos menos Edit que mostraría un formulario de edición.
+
+// Si queremos dar  la funcionalidad de ver todos los aviones tendremos que crear una ruta específica.
+// Pero de aviones solamente necesitamos solamente los métodos index y show.
+// Lo correcto sería hacerlo así:
+Route::resource('aviones','AvionController',[ 'only'=>['index','show'] ]); // El resto se gestionan en FabricanteAvionController
+
+// Como la clase principal es fabricantes y un avión no se puede crear si no le indicamos el fabricante, 
+// entonces necesitaremos crear lo que se conoce como  "Recurso Anidado" de fabricantes con aviones.
+// Definición del recurso anidado:
+Route::resource('fabricantes.aviones','FabricanteAvionController',[ 'except'=>['show','edit','create'] ]);
+
+
+Es el momento de implementar dentro de los métodos de los Controllers el código encargado de realizar las acciones correspondientes.
+Códigos de estado HTTP a utilizar en la API RESTful
+
+HTTP define un set de significativos códigos de status que pueden ser devueltos por la API. Éstos pueden ser nivelados para ayudar a los consumidores de la API dirigir sus respuestas de forma apropiada.
+
+De forma genérica los códigos HTTP que comienzan por los números indicados abajo, tienen el siguiente significado:
+
+    200's usados para respuestas con éxito.
+    300's usados para redirecciones.
+    400's usados cuando hay algún problema con la petición.
+    500's usados cuando hay algún problema con el servidor.
+
+Lista de códigos HTTP que se deberían utilizar en la API RESTful: ---
+
+    200 OK - Respuesta a un exitoso GET, PUT, PATCH o DELETE. Puede ser usado también para un POST que no resulta en una creación.
+    201 Created – [Creada] Respuesta a un POST que resulta en una creación. Debería ser combinado con un encabezado Location, apuntando a la ubicación del nuevo recurso.
+    204 No Content – [Sin Contenido] Respuesta a una petición exitosa que no devuelve un body (por ejemplo en una petición DELETE)
+
+---
+
+    304 Not Modified – [No Modificada] Usado cuando el cacheo de encabezados HTTP está activo y el cliente puede usar datos cacheados.
+
+---
+
+    400 Bad Request – [Petición Errónea] La petición está malformada, como por ejemplo, si el contenido no fue bien parseado. El error se debe mostrar también en el JSON de respuesta.
+    401 Unauthorized – [Desautorizada] Cuando los detalles de autenticación son inválidos o no son otorgados. También útil para disparar un popup de autorización si la API es usada desde un navegador.
+    403 Forbidden – [Prohibida] Cuando la autenticación es exitosa pero el usuario no tiene permiso al recurso en cuestión.
+    404 Not Found – [No encontrada] Cuando un recurso se solicita un recurso no existente.
+
+---
+
+    405 Method Not Allowed – [Método no permitido] Cuando un método HTTP que está siendo pedido no está permitido para el usuario autenticado.
+    409 Conflict - [Conflicto] Cuando hay algún conflicto al procesar una petición, por ejemplo en PATCH, POST o DELETE.
+    410 Gone – [Retirado] Indica que el recurso en ese endpoint ya no está disponible. Útil como una respuesta en blanco para viejas versiones de la API
+    415 Unsupported Media Type – [Tipo de contenido no soportado] Si el tipo de contenido que solicita la petición es incorrecto
+    422 Unprocessable Entity – [Entidad improcesable] Utilizada para errores de validación, o cuando por ejemplo faltan campos en una petición.
+    429 Too Many Requests – [Demasiadas peticiones] Cuando una petición es rechazada debido a la tasa límite .
+
+---
+
+    500 – Internal Server Error – [Error Interno del servidor] Los desarrolladores de API NO deberían usar este código. En su lugar se debería loguear el fallo y no devolver respuesta.
+
+--- Más información en: http://jsonapi.org/format/ 
+
+
+Mostrar los valores de un recurso y de un recurso anidado de la API RESTful
+
+Utilizaremos el formato JSON para devolver los datos solicitados a una URI de un recurso.
+
+Implementación de los métodos index() y show(): 
+
+
+
+Código de ejemplo del controlador app/Http/Controllers/FabricanteController.php: 
+
+<?php namespace App\Http\Controllers;
+
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+
+use Illuminate\Http\Request;
+
+// Necesitaremos el modelo Fabricante para ciertas tareas.
+use App\Fabricante;
+
+class FabricanteController extends Controller {
+
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return Response
+	 */
+	public function index()
+	{
+		// Devolverá todos los fabricantes.
+		// return "Mostrando todos los fabricantes de la base de datos.";
+		// return Fabricante::all();  No es lo más correcto por que se devolverían todos los registros. Se recomienda usar Filtros.
+		// Se debería devolver un objeto con una propiedad como mínimo data y el array de resultados en esa propiedad.
+		// A su vez también es necesario devolver el código HTTP de la respuesta.
+		//php http://elbauldelprogramador.com/buenas-practicas-para-el-diseno-de-una-api-RESTful-pragmatica/
+		// https://cloud.google.com/storage/docs/json_api/v1/status-codes
+
+		return response()->json(['status'=>'ok','data'=>Fabricante::all()], 200);
+	}
+
+	/**
+	 * Show the form for creating a new resource.
+	 *
+	 * @return Response
+	 */
+	public function create()
+	{
+		// 
+		return "Se muestra formulario para crear un fabricante.";
+
+	}
+
+	/**
+	 * Store a newly created resource in storage.
+	 *
+	 * @return Response
+	 */
+	public function store()
+	{
+		//
+	}
+
+	/**
+	 * Display the specified resource.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function show($id)
+	{
+		//
+		// return "Se muestra Fabricante con id: $id";
+		// Buscamos un fabricante por el id.
+		$fabricante=Fabricante::find($id);
+
+		// Si no existe ese fabricante devolvemos un error.
+		if (!$fabricante)
+		{
+			// Se devuelve un array errors con los errores encontrados y cabecera HTTP 404.
+			// En code podríamos indicar un código de error personalizado de nuestra aplicación si lo deseamos.
+			return response()->json(['errors'=>array(['code'=>404,'message'=>'No se encuentra un fabricante con ese código.'])],404);
+		}
+
+		return response()->json(['status'=>'ok','data'=>$fabricante],200);
+
+	}
+
+	/**
+	 * Show the form for editing the specified resource.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function edit($id)
+	{
+		//
+		return "Se muestra formulario para editar Fabricante con id: $id";
+	}
+
+	/**
+	 * Update the specified resource in storage.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function update($id)
+	{
+		//
+	}
+
+	/**
+	 * Remove the specified resource from storage.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function destroy($id)
+	{
+		//
+	}
+
+}
