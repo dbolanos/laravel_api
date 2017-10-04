@@ -201,3 +201,90 @@ Creamos un fichero de Seeder para cada tabla FabricanteSeeder.php y AvionSeeder.
 
 php artisan make:seeder FabricanteSeeder
 
+
+     Para poder configurar con qué información rellenamos las tablas necesitamos un proyecto adicional que no viene con Laravel que se llama Faker, el cuál nos permitirá generar letras, números y textos aleatorios.
+    Podemos buscar ese proyecto con Composer:
+
+
+    	composer search faker
+
+    # El proyecto que nos interesa es '''fzaninotto/faker'''
+
+    	composer require fzaninotto/faker --dev
+
+    Documentación de Faker en: https://github.com/fzaninotto/Faker
+
+    Ejemplo Seeder Avion:
+
+    <?php
+
+use Illuminate\Database\Seeder;
+
+// Hace uso del modelo de Fabricante.
+use App\Fabricante;
+
+// Hace uso del modelo de Avion.
+use App\Avion;
+
+// Le indicamos que utilice también Faker.
+// Información sobre Faker: https://github.com/fzaninotto/Faker
+use Faker\Factory as Faker;
+
+class AvionSeeder extends Seeder {
+
+	/**
+	 * Run the database seeds.
+	 *
+	 * @return void
+	 */
+	public function run()
+	{
+		// Creamos una instancia de Faker
+		$faker = Faker::create();
+
+		// Para cubrir los aviones tenemos que tener en cuanta qué fabricantes tenemos.
+		// Para que la clave foránea no nos de problemas.
+		// Averiguamos cuantos fabricantes hay en la tabla.
+		$cuantos= Fabricante::all()->count();
+
+		// Creamos un bucle para cubrir 20 aviones:
+		for ($i=0; $i<19; $i++)
+		{
+			// Cuando llamamos al método create del Modelo Avion 
+			// se está creando una nueva fila en la tabla.
+			Avion::create(
+				[
+				 'modelo'=>$faker->word(),
+				 'longitud'=>$faker->randomFloat(2,10,150),
+				 'capacidad'=>$faker->randomNumber(3),	// de 3 dígitos como máximo.
+				 'velocidad'=>$faker->randomNumber(4),	// de 4 dígitos como máximo.
+				 'alcance'=>$faker->randomNumber(),
+				 'fabricante_id'=>$faker->numberBetween(1,$cuantos)
+				]
+			);
+		}
+
+	}
+
+}
+
+
+Luego para correr el Faker lo que debermos de hacer, es correr el siguiente comando:
+
+
+	php artisan db:seed
+
+Si nos da algun error de Clase no encontrada (suele ocurrir al hacer los seed) entonces correremos el siguiente comando:
+
+	composer dumpautoload
+
+Para regresar la base de datos con el primer seeder podemos correr el siguiente comando:
+
+	php artisan migrate:refresh --seed
+
+     Si nos diese algún tipo de error en el require de la clase Faker haremos:
+
+composer update fzaninotto/faker
+# Se encarga de descargar el código de la clase y actualizar el fichero composer.json de nuestra aplicación.
+
+
