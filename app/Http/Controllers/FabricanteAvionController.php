@@ -8,6 +8,15 @@ use Illuminate\Http\Request;
 
 class FabricanteAvionController extends Controller
 {
+
+    // Configuramos en el constructor del controlador la autenticación usando el Middleware auth.basic,
+    // pero solamente para los métodos de crear, actualizar y borrar.
+
+    public function __construct()
+    {
+        $this->middleware('auth.basic', ['only'=>['store', 'update', 'destroy']]);
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -92,7 +101,7 @@ class FabricanteAvionController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy($idFabricante, $idAvion)
     {
         //
     }

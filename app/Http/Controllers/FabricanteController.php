@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 
 class FabricanteController extends Controller
 {
+    // Configuramos en el constructor del controlador la autenticación usando el Middleware auth.basic,
+    // pero solamente para los métodos de crear, actualizar y borrar.
+    public function __construct()
+    {
+        $this->middleware('auth.basic', ['only'=>['store', 'update', 'destroy']]);
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -46,6 +53,7 @@ class FabricanteController extends Controller
     public function store(Request $request)
     {
         //
+        return "peticion post recibida";
     }
 
     /**

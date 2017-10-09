@@ -5,9 +5,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
+//Necesita los dos modelos Fabricante y Avion
+use App\Fabricante;
+use App\Avion;
 
 class AvionController extends Controller
 {
+
+
+
     /**
      * Display a listing of the resource.
      *
