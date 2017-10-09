@@ -14,8 +14,9 @@ class User extends Authenticatable
      *
      * @var array
      */
+    // ELiminamos el campo name, nos vamos a autenticar solamente con email y password.
     protected $fillable = [
-        'name', 'email', 'password',
+        'email', 'password',
     ];
 
     /**
@@ -23,7 +24,8 @@ class User extends Authenticatable
      *
      * @var array
      */
+    // Eliminamos el campo remember_token
     protected $hidden = [
-        'password', 'remember_token',
+        'password'
     ];
 }

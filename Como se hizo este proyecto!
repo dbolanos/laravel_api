@@ -596,3 +596,291 @@ class FabricanteController extends Controller {
 	}
 
 }
+
+
+
+Código de ejemplo del controlador app/Http/Controllers/FabricanteAvionController.php:
+
+<?php namespace App\Http\Controllers;
+
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+
+use Illuminate\Http\Request;
+
+// Necesita los dos modelos Fabricante y Avion
+use App\Fabricante;
+use App\Avion;
+
+
+class FabricanteAvionController extends Controller {
+
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return Response
+	 */
+	public function index($idFabricante)
+	{
+		// Devolverá todos los aviones.
+		//return "Mostrando los aviones del fabricante con Id $idFabricante";
+		$fabricante=Fabricante::find($idFabricante);
+
+		if (! $fabricante)
+		{
+			// Se devuelve un array errors con los errores encontrados y cabecera HTTP 404.
+			// En code podríamos indicar un código de error personalizado de nuestra aplicación si lo deseamos.
+			return response()->json(['errors'=>array(['code'=>404,'message'=>'No se encuentra un fabricante con ese código.'])],404);
+		}
+
+		return response()->json(['status'=>'ok','data'=>$fabricante->aviones()->get()],200);
+		//return response()->json(['status'=>'ok','data'=>$fabricante->aviones],200);
+	}
+
+	/**
+	 * Show the form for creating a new resource.
+	 *
+	 * @return Response
+	 */
+	public function create($idFabricante)
+	{
+		//
+		return "Se muestra formulario para crear un avión del fabricante $idFabricante.";
+	}
+
+	/**
+	 * Store a newly created resource in storage.
+	 *
+	 * @return Response
+	 */
+	public function store()
+	{
+		//
+	}
+
+	/**
+	 * Display the specified resource.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function show($idFabricante,$idAvion)
+	{
+		//
+		return "Se muestra avión $idAvion del fabricante $idFabricante";
+	}
+
+	/**
+	 * Show the form for editing the specified resource.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function edit($idFabricante,$idAvion)
+	{
+		//
+		return "Se muestra formulario para editar el avión $idAvion del fabricante $idFabricante";
+	}
+
+	/**
+	 * Update the specified resource in storage.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function update($idFabricante,$idAvion)
+	{
+		//
+	}
+
+	/**
+	 * Remove the specified resource from storage.
+	 *
+	 * @param  int  $id
+	 * @return Response
+	 */
+	public function destroy($idFabricante,$idAvion)
+	{
+		//
+	}
+
+}
+
+
+
+
+Los middlewares en Laravel 5
+
+Los middleware HTTP proporcionan un mecanismo de filtrado de peticiones HTTP que acceden a nuestra aplicación. Por ejemplo Laravel incluye un middleware que verifica si el usuario de nuestra aplicación está autenticado. Si el usuario no está autenticado, el middleware redirecciona al usuario a una página de autenticación. Si el usuario está autenticado, el middleware permitirá acceder al recurso solicitado en la aplicación.
+
+En el framework Laravel se incluyen muchos middlewares como por ejemplo para mantenimiento, autenticación, protección CSRF, etc.
+
+Todos los middleware se localizan en la carpeta app/Http/Middleware.
+
+Para generar una plantilla de middleware se puede hacer con PHP Artisan:
+
+php artisan make:middleware NombreMiddleware
+
+En el fichero app/Http/Kernel.php se definen los middlewares que se cargarán al inicio de nuestra aplicación.
+
+<?php namespace App\Http;
+
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
+
+class Kernel extends HttpKernel {
+
+	/**
+	 * The application's global HTTP middleware stack.
+	 *
+	 * @var array
+	 */
+	// Aquí se programa el Middleware que se cargará siempre y globalmente en la aplicación.
+	protected $middleware = [
+		'Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode',
+		'Illuminate\Cookie\Middleware\EncryptCookies',
+		'Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse',
+		'Illuminate\Session\Middleware\StartSession',
+		'Illuminate\View\Middleware\ShareErrorsFromSession',
+		'App\Http\Middleware\VerifyCsrfToken', --> Es este!
+	];
+
+	/**
+	 * The application's route middleware.
+	 *
+	 * @var array
+	 */
+
+	// Aquí se programa el Middleware que se cargará dependiendo de la ruta.
+	protected $routeMiddleware = [
+		'auth' => 'App\Http\Middleware\Authenticate',
+		'auth.basic' => 'Illuminate\Auth\Middleware\AuthenticateWithBasicAuth',
+		'guest' => 'App\Http\Middleware\RedirectIfAuthenticated',
+	];
+
+}
+
+
+Ahora lo que vamos  hacer en el Modelo de Users hace mos los siguientes cambios:
+
+
+class User extends Model implements AuthenticatableContract, CanResetPasswordContract {
+
+	use Authenticatable, CanResetPassword;
+
+	/**
+	 * The database table used by the model.
+	 *
+	 * @var string
+	 */
+	protected $table = 'users';
+
+	/**
+	 * The attributes that are mass assignable.
+	 *
+	 * @var array
+	 */
+
+	// ELiminamos el campo name, nos vamos a autenticar solamente con email y password. --> Removemos name
+	protected $fillable = ['email', 'password'];
+
+	/**
+	 * The attributes excluded from the model's JSON form.
+	 *
+	 * @var array
+	 */
+
+	// Eliminamos el campo remember_token --> Removemos remember_token
+	protected $hidden = ['password'];
+
+} 
+
+
+
+Tambien vamos a modificar la migracion de users:
+
+<?php
+
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class Users extends Migration {
+
+	/**
+	 * Run the migrations.
+	 *
+	 * @return void
+	 */
+	public function up()
+	{
+		Schema::create('users', function(Blueprint $table)
+		{
+			$table->increments('id');
+			$table->string('email')->unique();
+			$table->string('password');
+			$table->timestamps();
+		});
+	}
+
+	/**
+	 * Reverse the migrations.
+	 *
+	 * @return void
+	 */
+	public function down()
+	{
+		Schema::drop('users');
+	}
+
+}
+
+
+
+
+Ahora creamos un seeder para user y solo vamos 
+
+php artisan make:seeder UserSeeder
+
+y luego ejecutamos
+	//Para refrescar
+	composer dump-autoload
+
+y luego:
+	//ejecutamos los seeders
+	php artisan db:seed
+
+# Si queremos dejar la base de datos en su estado inicial y que ejecute 1 seed haremos:
+php artisan migrate:refresh --seed
+
+
+Al intentar correr el comando anterior medio el siguiente problema:
+	Generating optimized autoload files
+> Illuminate\Foundation\ComposerScripts::postAutoloadDump
+> @php artisan package:discover
+
+
+y trataba de correr composer dumpautoload y me daba otro error, para arreglarlo tuve que hacer lo siguiente:
+
+This is because of your Laravel Installer or Composer version. I have faced the same problem and found following 2 different solutions:
+
+Generally you can solve with by running composer global update command and then run composer update command from your project directory. This solution basically updates your installer and then your project.
+
+If still, you have this issue, you need to run composer self-update command first and then run composer update command from your project directory. Here your composer will update and then your project.
+
+Hope this information will help you.
+
+Lo que hice fue correr:
+	
+	composer self-update
+
+y ya despues pude correr 
+
+	composer dumpautoload
+
+
+
+pero cuando volvi a intentar migration:refresh, me dio error de nuevo, entonces parece que lo que da error es que en el archivo DatabaseSeeder.php yo tengo la siguiente funcion User::truncate(); en donde lo que hice fue agregar el siguiente use App\User; en el archivo DatabaseSeeder.php
+
+Despues de eso ya me corrio y se me soluciono el problema
+
+y luego
+	 php artisan migrate:refresh --seed
