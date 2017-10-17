@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+
+use Response;
+
 use App\Fabricante; //Se necesita el modelo de Fabricante
 use Illuminate\Http\Request;
 
@@ -50,10 +55,31 @@ class FabricanteController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+    // Pasamos como parámetro al método store todas las variables recibidas de tipo Request
+    // utilizando inyección de dependencias (nuevo en Laravel 5)
+    // Para acceder a Request necesitamos asegurarnos que está cargado use Illuminate\Http\Request;
+    // Información sobre Request en: http://laravel.com/docs/5.0/requests
+    // Ejemplo de uso de Request:  $request->input('name');
     public function store(Request $request)
     {
-        //
-        return "peticion post recibida";
+        //Primero comprobaremos si estamos recibiendo todos los campos.
+        if(!$request->input('nombre')||$request->input('direccion')||$request->input('telefono')){
+            // Se devuelve un array errors con los errores encontrados y cabecera HTTP 422 Unprocessable Entity – [Entidad improcesable] Utilizada para errores de validación.
+            // En code podríamos indicar un código de error personalizado de nuestra aplicación si lo deseamos.
+            return response()->json(['errors'=>array(['code'=>'422', 'message'=>'Faltante de datos para el proceso de alta'])],422);
+        }else{
+            // Insertamos una fila en Fabricante con create pasándole todos los datos recibidos.
+            // En $request->all() tendremos todos los campos del formulario recibidos.
+            $nuevoFabricante = Fabricante::create($request::all());
+
+            // Más información sobre respuestas en http://jsonapi.org/format/
+            // Devolvemos el código HTTP 201 Created – [Creada] Respuesta a un POST que resulta en una creación. Debería ser combinado con un encabezado Location, apuntando a la ubicación del nuevo recurso.
+
+            $response = Response::make(json_encode(['data'=> $nuevoFabricante]), 201)->header('Location', 'http://http://laravel-api.local:81/fabricantes/'.$nuevoFabricante->id)->header('Content-Type','aplication/json');
+
+            return $response;
+        }
+
     }
 
     /**

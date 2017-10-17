@@ -1,6 +1,13 @@
 <?php
 
 namespace App\Http\Controllers;
+
+
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+
+use Response;
+
 //Se necesitan los 2 modelos
 use App\Avion;
 use App\Fabricante;
@@ -54,9 +61,48 @@ class FabricanteAvionController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(Request $request, $id_fabricante)
     {
         //
+        /* Necesitaremos el fabricante_id que lo recibimos en la ruta
+		 #Serie (auto incremental)
+		Modelo
+		Longitud
+		Capacidad
+		Velocidad
+		Alcance */
+
+        // Primero comprobaremos si estamos recibiendo todos los campos.
+        if(!$request->input('modelo')
+        || !$request->input('longitud')
+        || !$request->input('capacidad')
+        || !$request->input('alcance')){
+            // Se devuelve un array errors con los errores encontrados y cabecera HTTP 422 Unprocessable Entity – [Entidad improcesable] Utilizada para errores de validación.
+            return response()->json(['errors'=>array(['code'=>'422','message'=>'Faltante de datos  para el proceso de alta'])],422);
+
+        }
+       //Buscamos el Fabricante
+        $fabricante = Fabricante::find($id_fabricante);
+
+        // Si no existe el fabricante que le hemos pasado mostramos otro código de error de no encontrado.
+        if(!$fabricante){
+            // Se devuelve un array errors con los errores encontrados y cabecera HTTP 404.
+            // En code podríamos indicar un código de error personalizado de nuestra aplicación si lo deseamos.
+
+            return response()->json(['errors'=>array(['code'=>'404','message'=>'No se encuentra un fabricante con ese codigo'])],404);
+        }
+
+        // Si el fabricante existe entonces lo almacenamos.
+        // Insertamos una fila en Aviones con create pasándole todos los datos recibidos.
+
+        $nuevoAvion = $fabricante->aviones()->create($request::all());
+
+        // Más información sobre respuestas en http://jsonapi.org/format/
+        // Devolvemos el código HTTP 201 Created – [Creada] Respuesta a un POST que resulta en una creación. Debería ser combinado con un encabezado Location, apuntando a la ubicación del nuevo recurso.
+
+        $response = Response::make(json_encode(['data'=>$nuevoAvion]),201)->header('Location','http://laravel-api.local:81/aviones/'.$nuevoAvion->serie)->header('Content-Type','application/json');
+        return $response;
+
     }
 
     /**
